@@ -1,0 +1,312 @@
+
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>תרגול ערבית FINAL MOBILE FIXED</title>
+<style>
+body{font-family:Arial;background:#f4f6fb;margin:0;padding:12px;-webkit-tap-highlight-color:transparent}
+.container{display:flex;flex-direction:column;gap:14px}
+.box{background:white;border-radius:16px;padding:16px;box-shadow:0 4px 12px rgba(0,0,0,0.12)}
+h1{text-align:center;font-size:22px;margin:6px 0 10px}
+h2{text-align:center;font-size:18px;margin:6px 0 10px}
+.word{font-size:44px;text-align:center;margin:18px 0;font-weight:bold}
+.answers button{width:100%;padding:16px;margin:6px 0;border:none;border-radius:14px;font-size:18px;background:#e9ecf5}
+.answers button.correct{background:#4caf50;color:white}
+.answers button.wrong{background:#f44336;color:white}
+.progress{height:16px;background:#eee;border-radius:10px;overflow:hidden;margin-top:12px}
+.progress-bar{height:100%;width:0%;background:#4caf50}
+.score,.total{text-align:center;font-size:16px;margin-top:6px}
+.flashcard{font-size:42px;text-align:center;padding:34px 10px;background:#fafafa;border-radius:14px;cursor:pointer;min-height:110px}
+.btn{margin-top:8px;width:100%;padding:14px;border:none;border-radius:14px;background:#2196f3;color:white;font-size:17px;cursor:pointer}
+.reset{background:#ff5722}
+.notice{font-size:12px;text-align:center;color:#666;margin-top:4px}
+@media (min-width:900px){
+  .container{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:1100px;margin:auto}
+}
+</style>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2196f3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="תרגול ערבית">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+</head>
+<body>
+
+<h1>🎓 תרגול ערבית</h1>
+
+<div class="container">
+
+<div class="box">
+<h2>🧠 רב־ברירה</h2>
+<div id="quizInfo" style="text-align:center;font-weight:bold"></div>
+<div id="quizWord" class="word"></div>
+<button class="btn" onclick="playAudio()">🔊 השמע</button>
+<div class="notice">באייפון: ודא שלא על מצב שקט 🔕</div>
+<div id="answers" class="answers"></div>
+
+<div class="score">ניקוד תרגול: <span id="score">0</span></div>
+<div class="total">ניקוד כולל: <span id="totalScore">0</span></div>
+
+<div class="progress"><div id="progressBar" class="progress-bar"></div></div>
+
+<button id="reviewBtn" class="btn" style="display:none" onclick="enterReview()">🔍 הצג תשובות</button>
+<button id="nextQuizBtn" class="btn" style="display:none" onclick="nextQuiz()">➡️ תרגול הבא</button>
+<button class="btn reset" onclick="resetAll()">🔁 איפוס מלא</button>
+</div>
+
+<div class="box">
+<h2>📖 כרטיסיות</h2>
+<div id="flashcard" class="flashcard">לחץ להתחלה</div>
+<button class="btn" onclick="nextFlash()">מילה הבאה</button>
+<button class="btn" onclick="playAudioFlash()">🔊 השמע</button>
+</div>
+
+</div>
+
+<script>
+// ===== FULL VOCABULARY (unchanged) =====
+const words=[
+{ar:"زَار",he:"ביקר"},
+{ar:"أَرَادَ",he:"רצה"},
+{ar:"دُروز",he:"דרוזים"},
+{ar:"وَ",he:"ו"},
+{ar:"دَاوُد",he:"דאוד"},
+{ar:"وِدَاد",he:"ודאד"},
+{ar:"دَار",he:"דירה"},
+{ar:"وَرد",he:"ורד"},
+{ar:"أَرْز",he:"ארז"},
+{ar:"وَزِير",he:"שר"},
+{ar:"دُرْزِيّ",he:"דרוזי"},
+{ar:"يَد",he:"יד"},
+{ar:"يَا",he:"יא"},
+{ar:"يَزيد",he:"יזיד"},
+{ar:"زَيد",he:"זיד"},
+{ar:"يُرِيدُ",he:"הוא רוצה"},
+{ar:"أُمّ",he:"אמא"},
+{ar:"مَامَا",he:"אמא"},
+{ar:"أُمِّي",he:"אמא שלי"},
+{ar:"ماذا",he:"מה"},
+{ar:"أَمِير",he:"אמיר"},
+{ar:"مُدِير",he:"מנהל"},
+{ar:"يَوْم",he:"יום"},
+{ar:"أَمَامَ",he:"מול"},
+{ar:"أَب",he:"אבא"},
+{ar:"بَاب",he:"דלת"},
+{ar:"أَدِيب",he:"אדיב"},
+{ar:"أَبُو",he:"אבא של"},
+{ar:"أَوْ",he:"או"},
+{ar:"بَدَوِيّ",he:"בדואי"},
+{ar:"أَبِي",he:"אבא שלי"},
+{ar:"بَدُو",he:"בדואים"},
+{ar:"بَابَا",he:"אבא"},
+{ar:"لَيْل",he:"לילה"},
+{ar:"بَلَد",he:"עיר"},
+{ar:"لِي",he:"לי"},
+{ar:"وَلَد",he:"ילד"},
+{ar:"أَوْلَاد",he:"ילדים"},
+{ar:"بَيْت",he:"בית"},
+{ar:"تَمْر",he:"תמר"},
+{ar:"تِلْمِيذ",he:"תלמיד"},
+{ar:"تَلَامِيذ",he:"תלמידים"},
+{ar:"مُمْتَاز",he:"מצוין"},
+{ar:"أَيْنَ",he:"איפה"},
+{ar:"مَنْ",he:"מי"},
+{ar:"بِنْت",he:"בת"},
+{ar:"بَنَات",he:"בנות"},
+{ar:"لُبْنَان",he:"לבנון"},
+{ar:"مَدِينَة",he:"עיר"},
+{ar:"أُسْبُوعَ",he:"שבוע"},
+{ar:"مَعَ",he:"עם"},
+{ar:"مُعَلِّمَة",he:"מורה"},
+{ar:"عَائِلَة",he:"משפחה"},
+{ar:"عَمَّان",he:"עמאן"},
+{ar:"بَعْدَ",he:"אחרי"},
+{ar:"عَرَبِي",he:"ערבי"},
+{ar:"يَعْمَلُ",he:"עובד"},
+{ar:"أسْم",he:"שם"},
+{ar:"أسْمِي",he:"שמי"},
+{ar:"سُورِيَا",he:"סוריה"},
+{ar:"بَسَّام",he:"בסאם"},
+{ar:"سَمِير",he:"סמיר"},
+{ar:"أَلْأُرْدُّن",he:"ירדן"},
+{ar:"مَدْرَسَة",he:"בית ספר"},
+{ar:"دَرْس",he:"שיעור"},
+{ar:"سَيَّارَة",he:"מכונית"},
+{ar:"كَرِيم",he:"כרים"},
+{ar:"مَبْرُوك",he:"מזל טוב"},
+{ar:"مَكْتَب",he:"משרד"},
+{ar:"كِتَاب",he:"ספר"},
+{ar:"كَبِير",he:"גדול"},
+{ar:"أسكن",he:"אני גר"},
+{ar:"بَنْك",he:"בנק"},
+{ar:"نُسَافِرُ",he:"ניסע"},
+{ar:"يُوسُف",he:"יוסף"},
+{ar:"يَافَا",he:"יפו"},
+{ar:"فَرِيد",he:"פריד"},
+{ar:"فِي",he:"ב"},
+{ar:"وَفَاء",he:"ופאה"},
+{ar:"دِمَشْق",he:"דמשק"},
+{ar:"مُقَدَّس",he:"מקודש"},
+{ar:"سُوق",he:"שוק"},
+{ar:"قَدِيم",he:"עתיק"},
+{ar:"قَرِيَة",he:"כפר"},
+{ar:"أَلْقَاهِرَة",he:"קהיר"},
+{ar:"قَارَة",he:"יבשת"},
+{ar:"مِصْر",he:"מצרים"},
+{ar:"عَاصِمَة",he:"עיר בירה"},
+{ar:"بَصَل",he:"בצל"},
+{ar:"صَوْم",he:"צום"},
+{ar:"عَصْفُور",he:"ציפור"},
+{ar:"هَذَا",he:"זה"},
+{ar:"هَذِهِ",he:"זאת"},
+{ar:"نَهْر",he:"נהר"},
+{ar:"هِيَ",he:"היא"},
+{ar:"هُوَ",he:"הוא"},
+{ar:"هَامَّ",he:"חשוב"}
+];
+
+const QUIZ_SIZE=10;
+let quizzes=[];
+function createQuizzes(){
+  for(let i=0;i<10;i++){
+    let shuffled=[...words].sort(()=>Math.random()-0.5);
+    quizzes.push(shuffled.slice(0,QUIZ_SIZE));
+  }
+}
+createQuizzes();
+
+let quizIndex=0,current=0,score=0,totalScore=0,history=[];
+
+// ===== BETTER iPHONE AUDIO =====
+function playGoogleTTS(text){
+  const url="https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ar&q="+encodeURIComponent(text);
+  const audio=new Audio(url);
+  audio.play().catch(()=>{
+    if('speechSynthesis' in window){
+      const u=new SpeechSynthesisUtterance(text);
+      u.lang="ar-SA";
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    }
+  });
+}
+
+function playAudio(){ playGoogleTTS(quizzes[quizIndex][current].ar); }
+function playAudioFlash(){ playGoogleTTS(words[flashIndex].ar); }
+
+function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
+
+function showQuestion(){
+  document.getElementById("quizInfo").innerText=`תרגול ${quizIndex+1}/10 — שאלה ${current+1}/${QUIZ_SIZE}`;
+  const q=quizzes[quizIndex][current];
+  document.getElementById("quizWord").innerText=q.ar;
+
+  let opts=[q.he];
+  while(opts.length<4){
+    let r=words[Math.floor(Math.random()*words.length)].he;
+    if(!opts.includes(r)) opts.push(r);
+  }
+  opts=shuffle(opts);
+
+  const div=document.getElementById("answers");
+  div.innerHTML="";
+  opts.forEach(opt=>{
+    const btn=document.createElement("button");
+    btn.innerText=opt;
+    btn.onclick=()=>answer(btn,opt,q.he);
+    div.appendChild(btn);
+  });
+
+  updateProgress();
+}
+
+function answer(btn,selected,correct){
+  const buttons=[...document.querySelectorAll("#answers button")];
+  buttons.forEach(b=>b.disabled=true);
+
+  if(selected===correct){btn.classList.add("correct");score++;totalScore++;}
+  else{btn.classList.add("wrong");}
+
+  history.push({question:quizzes[quizIndex][current],selected,correct});
+  document.getElementById("score").innerText=score;
+  document.getElementById("totalScore").innerText=totalScore;
+
+  setTimeout(()=>{
+    current++;
+    if(current>=QUIZ_SIZE){finishQuiz();}
+    else{showQuestion();}
+  },650);
+}
+
+// 🔥 FIXED PROGRESS BAR
+function updateProgress(){
+  const percent=Math.min(((current)/QUIZ_SIZE)*100,100);
+  document.getElementById("progressBar").style.width=percent+"%";
+}
+
+function finishQuiz(){
+  document.getElementById("progressBar").style.width="100%";
+  document.getElementById("quizWord").innerText="🎉 סיום תרגול!";
+  document.getElementById("answers").innerHTML="";
+  document.getElementById("reviewBtn").style.display="block";
+  document.getElementById("nextQuizBtn").style.display="block";
+}
+
+function enterReview(){
+  let html="";
+  history.forEach(h=>{
+    let line=`<div style="margin:6px 0"><b>${h.question.ar}</b> — `;
+    if(h.selected===h.correct)
+      line+=`<span style="color:green">${h.correct}</span>`;
+    else
+      line+=`<span style="color:red">${h.selected}</span> → <span style="color:green">${h.correct}</span>`;
+    line+="</div>";
+    html+=line;
+  });
+  document.getElementById("answers").innerHTML=html;
+}
+
+function nextQuiz(){
+  quizIndex++;score=0;current=0;history=[];
+  if(quizIndex>=quizzes.length){
+    alert(`🏆 סיימת הכל!\nניקוד כולל: ${totalScore}`);
+    quizIndex=0;totalScore=0;
+  }
+  document.getElementById("score").innerText=score;
+  document.getElementById("totalScore").innerText=totalScore;
+  document.getElementById("reviewBtn").style.display="none";
+  document.getElementById("nextQuizBtn").style.display="none";
+  showQuestion();
+}
+
+function resetAll(){location.reload();}
+
+let flashIndex=0,showingArabic=true;
+function nextFlash(){
+  showingArabic=true;
+  flashIndex=(flashIndex+1)%words.length;
+  document.getElementById("flashcard").innerText=words[flashIndex].ar;
+}
+document.getElementById("flashcard").onclick=function(){
+  this.innerText=showingArabic?words[flashIndex].he:words[flashIndex].ar;
+  showingArabic=!showingArabic;
+};
+
+nextFlash();
+showQuestion();
+</script>
+
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
+</script>
+
+</body>
+</html>
